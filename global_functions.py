@@ -19,10 +19,10 @@ def plot_profiles(meas_data, sim_data):
     n_plots = len(meas_data.x_position)
     n_plots += math.ceil(len(meas_data.x_position) % 2)
     n_cols = 2
-    n_rows = n_plots/2 + 1
+    n_rows = n_plots/2  # + 1
     width = 7.0
     height = float(n_rows)/float(n_cols)*width*0.7
-    fig = plt.figure(figsize=(width, height), dpi=200)
+    fig = plt.figure(dpi=200, figsize=(width, height))
     major_locator = MultipleLocator(2.5)
     major_formatter = FormatStrFormatter('%4.1f')
     minor_locator = MultipleLocator(0.5)
@@ -33,8 +33,10 @@ def plot_profiles(meas_data, sim_data):
         ax = fig.add_subplot(n_rows, n_cols, j + 1)
         ax.set_title("x = " + str(xpos * m_to_mm) + " mm")
 
-        plt.plot(meas_data.y_grid * m_to_mm, meas_data.x_vel_prof[j] * m_to_mm, 'k-', label="Measurement")
-        plt.plot(sim_data.y_grid * m_to_mm, sim_data.x_vel_prof[j] * m_to_mm, 'r-', label="Simulation")
+        plt.plot(meas_data.y_grid * m_to_mm, meas_data.x_vel_prof[j] * m_to_mm,
+                 'k-', label="Measurement")
+        plt.plot(sim_data.y_grid * m_to_mm, sim_data.x_vel_prof[j] * m_to_mm,
+                 'r-', label="Simulation")
 
         ax.set_xlabel("y-Position / $mm$", fontsize='8.0')
         ax.set_ylabel("x-Velocity / $mm/s$", fontsize='8.0')
@@ -46,19 +48,19 @@ def plot_profiles(meas_data, sim_data):
         ax.xaxis.set_major_locator(major_locator)
         ax.xaxis.set_major_formatter(major_formatter)
         ax.xaxis.set_minor_locator(minor_locator)
-
         plt.tight_layout()
+        # if n_plots % 2 == 0.0:
+        plt.subplots_adjust(bottom=0.17, top=1.1)
         plt.legend(loc=0)
     return fig
 
 
-def add_info(fig, in_dict):
-    info = ''
+def add_info(in_dict, info=''):
     for key in in_dict:
-        info += str(key) + ': ' + '%.3E' % in_dict[key] + '\n'
-    fig.text(0.1, 0.001, info, horizontalalignment='left', fontsize='8.0')
-
-    return fig
+        if isinstance(in_dict[key], (float, int)):
+            info += str(key) + ': ' + '%.3E' % in_dict[key] + '\n'
+    # fig.text(0.1, 0.001, info, horizontalalignment='left', fontsize='8.0')
+    return info
 
 
 def calculate_error(meas_data, sim_data):

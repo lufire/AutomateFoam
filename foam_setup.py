@@ -74,6 +74,33 @@ def set_transport_props(in_dict):
     transport_dict.writeFile()
 
 
+def set_foam_subdicts(main_dict, in_dicts):
+    if isinstance(in_dicts, (list, tuple)):
+        for sub_dict in in_dicts:
+            main_dict = set_foam_subdict(main_dict, sub_dict)
+    elif isinstance(in_dicts, dict):
+        main_dict = set_foam_subdict(main_dict, in_dicts)
+    else:
+        raise TypeError('Input "in_dicts" must either be a list or tuple of '
+                        'dicts or a single dict')
+    return main_dict
+
+
+def set_foam_subdict(main_dict, in_dict):
+    if isinstance(in_dict, dict):
+        try:
+            this_dict = main_dict[in_dict['name']]
+            for key in in_dict:
+                if key in this_dict:
+                    this_dict[key][-1] = in_dict[key]
+        except KeyError:
+            print('Foam sub-dict with name ' + in_dict['name']
+                  + ' not found in ' + main_dict.name)
+    else:
+        raise TypeError('Input "in_dict" must be a dictionary')
+    return main_dict
+
+
 def set_graphs(bounds, profile_positions):
     graph_names = []
     control_dict = ParsedParameterFile('system/controlDict')
