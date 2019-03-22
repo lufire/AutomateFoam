@@ -83,31 +83,31 @@ velocity_dict = {'name': '0.org/U',
 input_dict = {
                 'wallCoeffs':
                 {
-                    'factor': 6e-4,
-                    'exponent': 2.0,
+                    'alpha': 6e-2,
+                    'beta': 1.0,
+                    'exponent': 2.0
                 },
-                'rheologyCoeffs':
+                'RousselCoeffs':
                 {
-                    'tau0': 5.0e-4,
-                    'nuInf': 2e-6,
+                    'tau0': 10e-4
                 },
                 'HerschelBulkleyExtendedCoeffs':
                 {
-                    'tau0': 5.0e-4,
-                    'k': 3e-5,
+                    'tau0': 0.0e-4,
+                    'k': 5e-5,
                     'n': 0.6,
-                    'nuInf': 2e-6,
+                    'nuInf': 5e-6
                 },
                 'FeierabendStructureCoeffs':
                 {
                     'theta': 10.0,
                     'alpha': 5.0,
                     'a': 0.0,
-                    'b': 1.0,
+                    'b': 1.0
                 }
              }
 
-# bounds_dict = {'factor': (1e-4, 1e7),
+# bounds_dict = {'alpha': (1e-4, 1e7),
 #                'exponent': (0.5, 5.0),
 #                'a': (0.2, 2.0),
 #                'b': (0.2, 2.0),
@@ -131,7 +131,7 @@ input_dict = {
 # param_dict.update(slip_dict)
 # param_dict.update(transport_dict)
 
-# bounds_dict = {'factor': [1e-4, 1e7],
+# bounds_dict = {'alpha': [1e-4, 1e7],
 #                'exponent': [0.5, 5.0],
 #                'nu': [1e-6, 1e-2],
 #                'theta': [0.1, 1000.0],
@@ -169,13 +169,15 @@ for i in range(simulation_number):
     for key in boundary_dict['boundaryField']:
         if key == 'upperInletWall':
             velocity_dict[key] = \
-                {'factor': param_dict['wallCoeffs']['factor']*1.0}
-            velocity_dict[key] = \
-                {'exponent': param_dict['wallCoeffs']['exponent']}
+                {'alpha': param_dict['wallCoeffs']['alpha']*1.0}
+            velocity_dict[key]['beta'] = param_dict['wallCoeffs']['beta']
+            velocity_dict[key]['exponent'] = \
+                param_dict['wallCoeffs']['exponent']
         elif boundary_dict['boundaryField'][key]['type'] \
-                == 'shearStressSlipVelocity':
+                == 'thixoShearStressSlipVelocity':
             velocity_dict[key] = boundary_dict['boundaryField'][key]
-            velocity_dict[key]['factor'] = param_dict['wallCoeffs']['factor']
+            velocity_dict[key]['alpha'] = param_dict['wallCoeffs']['alpha']
+            velocity_dict[key]['beta'] = param_dict['wallCoeffs']['beta']
             velocity_dict[key]['exponent'] = \
                 param_dict['wallCoeffs']['exponent']
 
@@ -189,14 +191,17 @@ for i in range(simulation_number):
         sub_dict.update(param_dict[name])
         sub_dict['name'] = name
         dict_list.append(sub_dict)
-    fs.set_foam_subdicts(transport_dict, dict_list)
-    #fs.set_transport_props(param_dict)
+    transport_dict = fs.set_foam_subdicts(transport_dict, dict_list)
+    transport_dict.writeFile()
+    # fs.set_transport_props(param_dict)
 
-    # gf.run_sim()
+    gf.run_sim()
+
+    sep = '\t'
 
     sim_data = rd.SimulationData(case_dir, meas_data)
     ts = str(datetime.datetime.now()).split('.')[0].split(' ')
-    run_name = str(i) + ', ' + ts[0] + ', ' + ts[1]
+    run_name = str(i) + sep + ts[0] + sep + ts[1]
 
     if sim_data.x_vel_prof:
         fig = gf.plot_profiles(meas_data, sim_data)
@@ -210,12 +215,12 @@ for i in range(simulation_number):
         info += 'error: %6.2f\n' % error
         fig.text(0.1, 0.001, info, horizontalalignment='left', fontsize='8.0')
         plt.savefig('results/' + run_name, bbox_inches='tight')
-        run_name += ', converged, error: %6.2f' % error
+        run_name += sep + 'converged' + sep + 'error: %6.2f' % error
     else:
-        run_name += ',  diverged'
+        run_name += sep + 'diverged'
 
-    run_name += str(param_dict)
-
+    run_name += sep + str(param_dict)
     run_name += '\n'
+
     with open('results/runs.txt', 'a') as f:
         f.write(run_name)
