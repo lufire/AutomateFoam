@@ -3,12 +3,12 @@
 # =============================================================================
 # Import libraries 
 # =============================================================================
+import sys
+sys.path.append('/home/simulation/PyCharm/PycharmProjects/AutomateFoam')
 import os
-import result_data as rd
 import numpy as np
 import random
-import global_functions as gf
-import foam_setup as fs
+from src import global_functions as gf, foam_setup as fs, result_data as rd
 import matplotlib.pyplot as plt
 import datetime
 from PyFoam.RunDictionary.ParsedParameterFile import ParsedParameterFile
@@ -40,45 +40,8 @@ velocity = np.nansum(meas_data.x_vel_prof[-1], axis=-1) / len(meas_data.x_grid)
 flow_rate = velocity * y_width * z_depth
 velocity_in = velocity * y_width / x_width_in * vel_factor
 
-velocity_dict = {'name': '0.org/U',
-                 'inlet': {'value': 'uniform (%f 0 0) ' % velocity_in}}
+velocity_dict = {'inlet': {'value': 'uniform (%f 0 0) ' % velocity_in}}
 
-# Set variable input parameters
-# slip_dict = {'factor': 6e-4,
-#              'exponent': 2.0}
-
-# deSouzaMendesThompson_dict = {'a': 1e-3,
-#                               'b': 10,
-#                               'teq': 0.5,
-#                               'G0': 1.3,
-#                               'm': 1.0,
-#                               'nuInf': 1e-5,
-#                               'tauY': 1e-3,
-#                               'tauYD': 1e-3,
-#                               'K': 1e-4,
-#                               'gammaYD': 1e-4}
-
-# bounds_dict = {
-#                'factor': (5e-6, 5e-3),
-#                'exponent': (1.0, 4.2),
-#                'tau0': (5e-5, 5e-3),
-#                'nuInf': (1e-6, 1e-3),
-#                'k': (1e-6, 1e-3),
-#                'theta': (0.1, 1000.0),
-#                'alpha': (0.01, 100.0)
-#               }
-
-# input_dict = {
-#                'factor':  6e-4,
-#                'exponent': 2.0,
-#                'tau0': 5.0e-4,
-#                'nuInf': 2e-6,
-#                'k': 3e-5,
-#                'theta': 10.0,
-#                'alpha': 5.0,
-#                'a': 0.2,
-#                'b': 0.2,
-#               }
 
 input_dict = {
                 'wallCoeffs':
@@ -107,52 +70,13 @@ input_dict = {
                 }
              }
 
-# bounds_dict = {'alpha': (1e-4, 1e7),
-#                'exponent': (0.5, 5.0),
-#                'a': (0.2, 2.0),
-#                'b': (0.2, 2.0),
-#                'teq': (0.1, 1000.0),
-#                'G0': (1.0, 1000.0),
-#                'm': (0.5, 1.5),
-#                'nuInf': (1e-6, 1e-3),
-#                'tauY': (5e-4, 5e-2),
-#                'tauYD': (5e-4, 5e-2),
-#                'K': (1e-6, 1e-3),
-#                'gammaYD': (1e-5, 1e-2)}
-
-# Coussot_dict = {'nu': 1e-3,
-#                 'theta': 10,
-#                 'alpha': 0.5,
-#                 'n': 1.3}
-
-# transport_dict = deSouzaMendesThompson_dict
-# 
-# param_dict = {}
-# param_dict.update(slip_dict)
-# param_dict.update(transport_dict)
-
-# bounds_dict = {'alpha': [1e-4, 1e7],
-#                'exponent': [0.5, 5.0],
-#                'nu': [1e-6, 1e-2],
-#                'theta': [0.1, 1000.0],
-#                'alpha': [0.01, 100.0],
-#                'n': [0.5, 5.0]}
-
 # Set graph data for OpenFOAM post processing
-fs.set_graphs(bounds, x_pos_profiles)
+fs.set_graphs(case_dir, bounds, x_pos_profiles)
 
 # Parameter variation loop
 for i in range(simulation_number):
 
     param_dict = {}
-    # Random parameter generation
-    # for key in bounds_dict:
-    #     if isinstance(bounds_dict[key], (list, tuple)):
-    #         param_dict[key] = \
-    #             np.exp(random.uniform(np.log(bounds_dict[key][0]),
-    #                                   np.log(bounds_dict[key][1])))
-    #     else:
-    #         param_dict[key] = bounds_dict[key]
 
     for key in input_dict:
         sub_dict = input_dict[key]
@@ -168,8 +92,8 @@ for i in range(simulation_number):
     boundary_dict = ParsedParameterFile(velocity_dict['name'])
     for key in boundary_dict['boundaryField']:
         if key == 'upperInletWall':
-            velocity_dict[key] = \
-                {'alpha': param_dict['wallCoeffs']['alpha']*1.0}
+            velocity_dict[key] = boundary_dict['boundaryField'][key]
+            velocity_dict[key]['alpha'] = param_dict['wallCoeffs']['alpha']*1.0
             velocity_dict[key]['beta'] = param_dict['wallCoeffs']['beta']
             velocity_dict[key]['exponent'] = \
                 param_dict['wallCoeffs']['exponent']
@@ -182,7 +106,7 @@ for i in range(simulation_number):
                 param_dict['wallCoeffs']['exponent']
 
     # Set up foam dictionary files
-    fs.set_boundary(velocity_dict)
+    fs.set_boundary(velocity_dict, os.path.join(case_dir, '0.org/U'))
 
     transport_dict = ParsedParameterFile('constant/transportProperties')
     dict_list = []
@@ -195,7 +119,7 @@ for i in range(simulation_number):
     transport_dict.writeFile()
     # fs.set_transport_props(param_dict)
 
-    gf.run_sim()
+    gf.run_sim(case_dir)
 
     sep = '\t'
 

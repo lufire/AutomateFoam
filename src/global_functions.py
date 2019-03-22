@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import (MultipleLocator, FormatStrFormatter)
 import subprocess
 import math
+import os
 
 # =============================================================================
 # Configure global plot settings
@@ -79,9 +80,12 @@ def calculate_error(meas_data, sim_data):
     return error
 
 
-def run_sim():
+def run_sim(case_dir):
+    work_dir = os.getcwd()
+    os.chdir(case_dir)
     # Run simulation
-    allclean_bash = './Allclean'
+    allclean_bash = os.path.join(case_dir, 'Allclean')
     subprocess.call(allclean_bash, shell=True)
-    allrun_bash = './Allrun'
+    allrun_bash = os.path.join(case_dir, 'Allrun')
     subprocess.call(allrun_bash, shell=True)
+    os.chdir(work_dir)
