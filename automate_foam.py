@@ -4,7 +4,7 @@
 # Import libraries 
 # =============================================================================
 import sys
-sys.path.append('/home/simulation/PyCharm/PycharmProjects/AutomateFoam')
+# sys.path.append('/home/simulation/PyCharm/PycharmProjects/AutomateFoam/src')
 import os
 import numpy as np
 import random
@@ -36,7 +36,7 @@ bounds = ((0.0, 20e-3),
 vel_factor = 1.2
 meas_data = rd.MeasurementData(meas_path, x_pos_profiles, bounds)
 
-velocity = np.nansum(meas_data.x_vel_prof[-1], axis=-1) / len(meas_data.x_grid)
+velocity = np.nansum(meas_data.profiles[-1], axis=-1) / len(meas_data.x_grid)
 flow_rate = velocity * y_width * z_depth
 velocity_in = velocity * y_width / x_width_in * vel_factor
 
@@ -127,7 +127,7 @@ for i in range(simulation_number):
     ts = str(datetime.datetime.now()).split('.')[0].split(' ')
     run_name = str(i) + sep + ts[0] + sep + ts[1]
 
-    if sim_data.x_vel_prof:
+    if sim_data.profiles:
         fig = gf.plot_profiles(meas_data, sim_data)
         error = gf.calculate_error(meas_data, sim_data)
         # info_dict = {}
