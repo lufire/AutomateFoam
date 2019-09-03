@@ -21,9 +21,9 @@ def create_figure(meas_data, ylabel, ylabel2=None):
     n_plots = len(meas_data.x_position)
     n_plots += math.ceil(len(meas_data.x_position) % 2)
     n_cols = 2
-    n_rows = int(math.ceil(n_plots/2))  # + 1
+    n_rows = int(math.floor(n_plots/2))  # + 1
     width = 7.0
-    height = float(n_rows)/float(n_cols)*width*0.7
+    height = float(n_rows)/float(n_cols)*width*0.8
     fig, axs = plt.subplots(n_rows, n_cols, dpi=200, figsize=(width, height))
     axs = np.asarray(axs)
     major_locator = MultipleLocator(2.5)
@@ -46,21 +46,30 @@ def create_figure(meas_data, ylabel, ylabel2=None):
         ax.xaxis.set_major_formatter(major_formatter)
         ax.xaxis.set_minor_locator(minor_locator)
         plt.tight_layout()
-        plt.subplots_adjust(bottom=0.17, top=1.1)
-        plt.legend(loc=0)
+        plt.subplots_adjust(bottom=0.25, top=1.1)
+        #plt.legend(loc=0)
     axs_twin = np.asarray(axs_twin)
     return fig, axs, axs_twin
 
 
-def add_plots(fig, axs, data, linestyle=None, scale=1.0):
+def add_plots(fig, axs, data, linestyle=None,
+              scale=1., ylim=None, meas_res=None):
     for i, ax in enumerate(axs.reshape(-1)):
+        if meas_res:
+            y_grid = data.y_grid
+            filt_size = \
+                int(round(meas_res / abs(y_grid[-1] - y_grid[0]) * len(y_grid)))
+            profile = \
+                ndimage.uniform_filter1d(data.profiles[i], filt_size)
+        else:
+            profile = data.profiles[i]
         # xpos = meas_data.x_position[i]
         # ax.set_title("x = " + str(xpos * m_to_mm) + " mm")
         if not linestyle:
             linestyle = data.plot_style
-        ax.plot(data.y_grid * 1000.0, data.profiles[i] * scale,
+        ax.plot(data.y_grid * 1000.0, profile * scale,
                 linestyle, label=data.name)
-
+        ax.set_ylim(ylim)
         # ax.set_xlabel("y-Position / $mm$", fontsize='8.0')
         # ax.set_ylabel("x-Velocity / $mm/s$", fontsize='8.0')
         # ax.grid()
@@ -123,7 +132,7 @@ def add_info(in_dict, info=''):
     return info
 
 
-def calculate_error(meas_data, sim_data):
+def calculate_error(meas_data, sim_data, meas_res):
 
     filt_size = 50
     y_grid = meas_data.y_grid
@@ -137,21 +146,28 @@ def calculate_error(meas_data, sim_data):
 
     val_error = 0.0
     der_error = 0.0
+    errors = []
     for i in range(len(meas_data.profiles)):
+        filt_size_meas = \
+            int(round(meas_res/abs(y_grid[-1]-y_grid[0]) * len(y_grid)))
+        vel_sim_filt = \
+            ndimage.uniform_filter1d(sim_data.profiles[i], filt_size_meas)
         vel_meas_filt = \
             ndimage.uniform_filter1d(meas_data.profiles[i], filt_size)
-        vel_sim_filt = \
+        vel_sim_double_filt = \
             ndimage.uniform_filter1d(sim_data.profiles[i], filt_size)
 
         der_meas = np.gradient(vel_meas_filt, y_grid_filt)
-        der_sim = np.gradient(vel_sim_filt, y_grid_filt)
+        der_sim = np.gradient(vel_sim_double_filt, y_grid_filt)
         der_error = np.nansum((der_meas - der_sim) ** 2)
         vel_meas = meas_data.profiles[i][idy[0]:idy[1]]
-        vel_sim = sim_data.profiles[i][idy[0]:idy[1]]
+        #vel_sim = sim_data.profiles[i][idy[0]:idy[1]]
+        vel_sim = vel_sim_filt[idy[0]:idy[1]]
         val_error += np.nansum(((vel_meas - vel_sim)/avg_vel) ** 2)
+        errors.append(val_error + der_error)
 
     error = val_error + der_error
-    return error
+    return error, errors
 
 
 def run_sim(case_dir):

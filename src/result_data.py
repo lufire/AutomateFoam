@@ -47,18 +47,19 @@ class MeasurementData(Data):
                 self.profiles.append(np.nan_to_num(profile_bounded[pos_id]))
 
         except IOError:
-            print "File containing measurement data not found"
+            raise IOError("File containing measurement data not found: ",
+                          meas_path)
 
 
 class SimulationData(Data):
 
     def __init__(self, case_path, meas_data, field_name, component):
         Data.__init__(self)
-        control_dict = \
-            ParsedParameterFile(os.path.join(case_path, 'system/controlDict'))
         self.name = 'Simulation - ' + field_name
         self.plot_style = 'r-'
-        self.end_time = str(control_dict['endTime'])
+        control_dict = \
+            ParsedParameterFile(os.path.join(case_path, 'system/controlDict'))
+        self.time = str(control_dict['endTime'])
         self.y_bounds = [0.0, 15e-3]
         self.y_grid = meas_data.y_grid
         self.x_grid = meas_data.x_grid
@@ -69,20 +70,31 @@ class SimulationData(Data):
         profiles = []
         for i in range(len(x_positions)):
             graph_dir = os.path.join(case_path,
-                                     'postProcessing/graph' + str(i + 1) + '/')
+                                     'postProcessing/graph' + str(i + 1))
             # graph_list = [int(i) for i in os.listdir(graph_dir)]
             # max_iter_nr = max(graph_list)
-            graph_file = graph_dir + self.end_time \
-                + '/line_' + field_name + '.xy'
-            try:
-                prof = np.loadtxt(graph_file, usecols=component)
-                y = np.linspace(self.y_bounds[0], self.y_bounds[1], len(prof),
-                                endpoint=True)
-                prof = np.nan_to_num(sp.interpolate.griddata(y, prof,
-                                                             self.y_grid))
-                profiles.append(prof)
-
-            except IOError:
-                raise IOError("File containing simulation profiles was not "
-                              "found")
+            self.time = self.read_time(graph_dir)
+            graph_file = os.path.join(graph_dir, str(self.time),
+                                      'line_' + field_name + '.xy')
+            profiles.append(self.read_profile(graph_file, component))
         return profiles
+
+    def read_profile(self, file_path, component):
+        try:
+            prof = np.loadtxt(file_path, usecols=component)
+        except IOError:
+            raise IOError("File containing simulation profiles not "
+                          "found: ", file_path)
+        y = np.linspace(self.y_bounds[0], self.y_bounds[1], len(prof),
+                        endpoint=True)
+        return np.nan_to_num(sp.interpolate.griddata(y, prof, self.y_grid))
+
+    @staticmethod
+    def read_time(path):
+        times_str = os.listdir(path)
+        times_float = [float(item) for item in times_str]
+        return times_str[times_float.index(max(times_float))]
+
+
+
+

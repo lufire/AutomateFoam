@@ -26,8 +26,10 @@ def plot_profiles(meas_data, sim_data):
         ax = fig.add_subplot(plot_num/2 + 1, 2, j + 1)
         ax.set_title("x = " + str(xpos * m_to_mm) + " mm")
 
-        plt.plot(meas_data.y_grid * m_to_mm, meas_data.x_vel_prof[j] * m_to_mm, 'k-', label="Measurement")
-        plt.plot(sim_data.y_grid * m_to_mm, sim_data.x_vel_prof[j] * m_to_mm, 'r-', label="Simulation")
+        plt.plot(meas_data.y_grid * m_to_mm, meas_data.x_vel_prof[j] * m_to_mm,
+                 'k-', label="Measurement")
+        plt.plot(sim_data.y_grid * m_to_mm, sim_data.x_vel_prof[j] * m_to_mm,
+                 'r-', label="Simulation")
 
         ax.set_xlabel("y-Position / $mm$", fontsize='8.0')
         ax.set_ylabel("x-Velocity / $mm/s$", fontsize='8.0')
